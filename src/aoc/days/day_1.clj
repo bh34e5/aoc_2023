@@ -1,11 +1,8 @@
-(ns aoc.days.day-1)
-
-(defn- read-input-file []
-  (slurp "inputs/day_1.txt"))
+(ns aoc.days.day-1
+  (:require [aoc.utils :as utils]))
 
 (defn- read-as-lines []
-  (let [contents (read-input-file)]
-    (seq (.split contents "\n"))))
+  (utils/read-as-lines 1))
 
 (defn- get-calibration-from-line-1 [line]
   (let [nums (filter #(Character/isDigit %1) line)
