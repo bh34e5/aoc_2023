@@ -6,16 +6,18 @@
 (defn- read-as-lines []
   (utils/read-as-lines 2))
 
-(defn- color-count->pair [color-count-str]
-  (let [[count-str color] (s/split color-count-str #" ")
-        count-long (parse-long count-str)
-        color-kwd (keyword color)]
-    [color-kwd count-long]))
+;;; common
 
 (def ^:private base-color-count
   {:red 0
    :green 0
    :blue 0})
+
+(defn- color-count->pair [color-count-str]
+  (let [[count-str color] (s/split color-count-str #" ")
+        count-long (parse-long count-str)
+        color-kwd (keyword color)]
+    [color-kwd count-long]))
 
 (defn- game-str->map [game-str]
   (let [color-counts (s/split game-str #", ")
@@ -30,6 +32,8 @@
     {:id id
      :games (map game-str->map games)}))
 
+;;; part 1
+
 (defn- is-possible-game? [{:keys [red green blue]}]
   (and (<= red 12)
        (<= green 13)
@@ -41,6 +45,8 @@
         valid-games (filter #(every? is-possible-game? (:games %1))
                             games)]
     (reduce + (map :id valid-games))))
+
+;;; part 2
 
 (defn- min-set-from-game [game-map]
   (let [max-red (:red (apply max-key :red (:games game-map)))

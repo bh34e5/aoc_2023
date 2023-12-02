@@ -4,10 +4,7 @@
 (defn- read-as-lines []
   (utils/read-as-lines 1))
 
-(defn- get-calibration-from-line-1 [line]
-  (let [nums (filter #(Character/isDigit %1) line)
-        calibration-str (str (first nums) (last nums))]
-    (parse-long calibration-str)))
+;;; common
 
 (def ^:private strs-to-vals
   {"one"   \1
@@ -20,6 +17,21 @@
    "eight" \8
    "nine"  \9})
 
+(defn- get-digit-from-str [line direction]
+  (let [check-fn  (if (= direction ::fwd)
+                    clojure.string/starts-with?
+                    clojure.string/ends-with?)
+        default-fn (if (= direction ::fwd)
+                     first
+                     last)]
+    (loop [ks (keys strs-to-vals)]
+      (let [check-key (first ks)]
+        (if (seq ks)
+          (if (check-fn line check-key)
+            (get strs-to-vals check-key)
+            (recur (rest ks)))
+          (default-fn line))))))
+
 (defn- get-substrings [line direction]
   (letfn [(get-bounds [ind] (case direction
                               ::fwd [ind (count line)]
@@ -27,21 +39,6 @@
     (for [ind (range (count line))]
       (let [[start stop] (get-bounds ind)]
         (.substring line start stop)))))
-
-(defn- get-digit-from-str [line direction]
-  (loop [ks (keys strs-to-vals)]
-    (let [check-key (first ks)
-          check-fn  (if (= direction ::fwd)
-                      clojure.string/starts-with?
-                      clojure.string/ends-with?)
-          default-fn (if (= direction ::fwd)
-                       first
-                       last)]
-      (if (seq ks)
-        (if (check-fn line check-key)
-          (get strs-to-vals (first ks))
-          (recur (rest ks)))
-        (default-fn line)))))
 
 (defn- replace-num-strs [line direction]
   (let [substrs (get-substrings line direction)
@@ -62,15 +59,24 @@
         r (replace-num-strs line ::rev)]
     [f r]))
 
+;;; part 1
+
+(defn- get-calibration-from-line-1 [line]
+  (let [nums (filter #(Character/isDigit %1) line)
+        calibration-str (str (first nums) (last nums))]
+    (parse-long calibration-str)))
+
+(defn part-1 []
+  (let [lines (read-as-lines)]
+    (reduce + (map get-calibration-from-line-1 lines))))
+
+;;; part 2
+
 (defn- get-calibration-from-line-2 [line]
   (let [[f r] (get-replaced-strs line)
         char1 (first (filter #(Character/isDigit %1) f))
         char2 (last  (filter #(Character/isDigit %1) r))]
     (parse-long (str char1 char2))))
-
-(defn part-1 []
-  (let [lines (read-as-lines)]
-    (reduce + (map get-calibration-from-line-1 lines))))
 
 (defn part-2 []
   (let [lines (read-as-lines)]
