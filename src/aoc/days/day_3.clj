@@ -77,6 +77,19 @@
     {:row (+ row (dec r-plus))
      :col (+ col-start (dec col-plus))}))
 
+(defn- part-overlaps?
+  [{prow :row pstart :start pend :end}
+   {crow :row ccol :col}]
+  (and (= prow crow)
+       (<= pstart ccol (dec pend))))
+
+(defn- get-surrounding-parts [parts sym]
+  (let [scol (:col sym)
+        nbors (neighbors (:row sym) scol (inc scol))]
+    (filter (fn [part]
+              (some #(part-overlaps? part %1) nbors))
+            parts)))
+
 ;;; part 1
 
 (defn part-1 []
@@ -89,3 +102,24 @@
                                    (neighbors row start end)))
                            (:parts parsed))]
     (reduce + (map :num neighbored))))
+
+;;; part 2
+
+(defn- is-gear? [parts sym]
+  (and (= (:sym sym) \*)
+       (= 2 (count (get-surrounding-parts parts sym)))))
+
+(defn- get-gear-ratio [[g1 g2]]
+  (* (:num g1) (:num g2)))
+
+(defn part-2 []
+  (let [lines (read-as-lines)
+        parsed (parse-input lines)
+        parts (:parts parsed)
+        gears (filter #(is-gear? parts %1)
+                      (:symbols parsed))
+        all-surroundings (map #(get-surrounding-parts parts %1)
+                              gears)
+        gear-ratios (map get-gear-ratio
+                         all-surroundings)]
+    (reduce + gear-ratios)))
