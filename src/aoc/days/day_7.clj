@@ -1,33 +1,36 @@
 (ns aoc.days.day-7
   (:require
-    [clojure.string :as str]
-    [aoc.utils :as utils]))
+   [clojure.string :as str]
+   [aoc.utils :as utils]))
 
 (defn- read-as-lines []
   (utils/read-as-lines 7))
 
 ;;; common
 
+(defn- parse-lines [lines]
+  (for [line lines]
+    (let [[cards score-str] (str/split line #" ")
+          score (parse-long score-str)]
+      {:cards (seq cards)
+       :cards-str cards
+       :score score})))
+
 (defn- load-input []
   (let [lines (read-as-lines)]
-    (for [line lines]
-      (let [[cards score-str] (str/split line #" ")
-            score (parse-long score-str)]
-        {:cards (seq cards)
-         :cards-str cards
-         :score score}))))
+    (parse-lines lines)))
 
-(def ^:private cards
+(def ^:private cards-1
   [\A \K \Q \J \T \9 \8 \7 \6 \5 \4 \3 \2])
 
-(def ^:private card-to-rank
+(def ^:private card-to-rank-1
   (apply hash-map
          (apply concat
                 (map-indexed (fn [ind card] [card ind])
-                             cards))))
+                             cards-1))))
 
 (defn- cards-comparator* [c-1 c-2]
-  (- (get card-to-rank c-1) (get card-to-rank c-2)))
+  (- (get card-to-rank-1 c-1) (get card-to-rank-1 c-2)))
 
 (defn- cards-list-comparator* [l-1 l-2]
   (loop [l-1 l-1
@@ -85,3 +88,81 @@
     (->> ranked
          (map #(* (:rank %1) (:score %1)))
          (reduce +))))
+
+;;; part 2
+;;;
+;;; starting with a re-write of a bit of stuff...
+
+(def ^:private cards-2
+  [\A \K \Q \T \9 \8 \7 \6 \5 \4 \3 \2 \J])
+
+(def ^:private card-to-rank-2
+  (apply hash-map
+         (apply concat
+                (map-indexed (fn [ind card] [card ind])
+                             cards-2))))
+
+(defn- freqs->str [freqs]
+  (apply str (mapcat #(repeat (get freqs %1) %1)
+                     (keys freqs))))
+
+(defn- replace-first [cstr]
+  (for [card (remove #{\J} cards-2)]
+    (str/replace-first cstr \J card)))
+
+(defn- permute-freqs [freqs]
+  (let [cstr (freqs->str freqs)]
+    (loop [i (get freqs \J)
+           others (list cstr)]
+      (if (zero? i)
+        others
+        (recur (dec i)
+               (mapcat replace-first others))))))
+
+(defn- max-with [f & colls]
+  (:orig (first
+          (sort-by :val
+                   (apply map
+                          (fn [& args]
+                            {:val (apply f args)
+                             :orig args})
+                          colls)))))
+
+(defn- hand-type [hand-str]
+  (let [fs (frequencies hand-str)
+        vs (vals fs)
+        sorted-vs (sort vs)]
+    (get hands-to-rank sorted-vs)))
+
+(defn- card-types [hand-str]
+  (map #(get card-to-rank-2 %1) (seq hand-str)))
+
+(declare maximize-frequencies)
+
+(defn- hand-power [hand]
+  (let [{:keys [cards-str]} hand
+        max-hand (maximize-frequencies (frequencies cards-str))
+        max-str (freqs->str max-hand)
+        h-type (hand-type max-str)
+        fc-types (card-types cards-str)]
+    (reduce (fn [acc cur]
+              (+ (* (count cards-2) acc)
+                 cur))
+            (concat (list h-type) fc-types))))
+
+(defn- replace-and-get-max [freqs]
+  (frequencies (first (max-with hand-type (permute-freqs freqs)))))
+
+(defn- maximize-frequencies [freqs]
+  (let [no-jacks (dissoc freqs \J)]
+    (cond
+      (= no-jacks freqs) freqs ;; frequencies didn't contain jacks, do nothing
+      (= {} no-jacks)    freqs ;; there were only jacks, 5 of a kind is max
+      :else              (replace-and-get-max freqs))))
+
+(defn part-2 []
+  (let [inp (load-input)
+        sorted (sort-by (memoize hand-power) inp)
+        revd (reverse sorted)
+        mapped (map-indexed (fn [idx v] (* (inc idx) (:score v))) revd)]
+    (reduce + mapped)))
